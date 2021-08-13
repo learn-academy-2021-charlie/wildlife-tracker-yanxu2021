@@ -9,16 +9,24 @@
 
 #### Creating a new Rails app:
 ```
+1. Create a new Rails App in the appropriate folder
 $ rails new wildlife_tracker -d postgresql -T
 $ cd wildlife_tracker
+
+2. Create a database 
 $ rails db:create
+
+3. Add the dependencies for RSpec
 $ bundle add rspec-rails
 $ rails generate rspec:install
+
+4. Begin the rails server, in the browser navigate to : http://localhost:3000
 $ rails server
 ```
 
 #### Set up GitHub
 ```
+5. Set up GitHub
 $ git remote add origin http...
 $ git checkout -b main
 $ git add .
@@ -38,17 +46,140 @@ $ git push origin main
 The Forest Service is considering a proposal to place in conservancy a forest of virgin Douglas fir just outside of Portland, Oregon. Before they give the go-ahead, they need to do an environmental impact study. They've asked you to build an API the rangers can use to report wildlife sightings.
 
 - **Story**:  As a developer I can create an animal model in the database. An animal has the following information: common name, latin name, kingdom (mammal, insect, etc.).
+```
+1. Generate(g) the resource with appropriate colums and data types
+Using the resource generator to give more to start with(magically creates)
+$ rails g resource Animal common_name:string latin_name:string kingdom:string 
+
+2. Set up local db seed data
+$ rails c
+> Animal.create common_name:"Pandion", latin_name:"Pandion haliaetus", kingdom: "Animalia"
+> Animal.create common_name:"Alpaca", latin_name:"Vicugna pacos", kingdom: "Animalia"
+> Animal.create common_name:"Ponytail palm", latin_name:"Beaucarnea recurvata", kingdom:"Plantae"
+```
+
 - **Story**:  As the consumer of the API I can see all the animals in the database.
   - *Hint*: Make a few animals using Rails Console
+```ruby
+    # Create an index method in animals_controller.rb
+    # GET the collection to see an index of links to members("index" method).
+    def index
+        @animals = Animal.all
+        render('index')
+    end
+
+    # Create a show method in animals_controller.rb, set up animal_params. 
+    # GET a member to see it("show" method).
+    def show
+        @animals = Animal.find(params[:id])
+        render('show')
+    end
+
+    private
+    def animal_params
+        params.require(:animal).permit(:common_name, :latin_name, :kingdom)
+    
+    end
+
+```
+
 - **Story**:  As the consumer of the API I can update an animal in the database.
+```ruby
+    # Create a update method in animals_controller.rb.
+    def update
+        @animal = Animal.find(params[:id])
+        if @animal
+            @animal.update(animal_params)
+            render('show')
+        else
+            head 404
+        end
+    end
+
+```
 - **Story**:  As the consumer of the API I can destroy an animal in the database.
+```ruby
+    # Create a destroy method in animals_controller.rb.
+    def destroy
+        @animal = Animal.find(params[:id])
+        if @animal
+            @animal.destroy
+            head 204
+        else
+            head 404
+        end
+    end
+```
 - **Story**:  As the consumer of the API I can create a new animal in the database.
+```ruby
+    # Create a create method in animals_controller.rb.
+    def create
+        @animal = Animal.create(animal_params)
+        render('show')
+    end
+```
+
 - **Story**:  As the consumer of the API I can create a sighting of an animal with date (use the *datetime* datatype), a latitude, and a longitude.
   - *Hint*:  An animal has_many sightings.  (rails g resource Sighting animal_id:integer ...)
+1. Generate resource Sighting
+```
+$ rails g resource Sighting date:datetime latitude:float longitude:float
+```
+2. Update the models: belong_to and has_many
+```ruby
+class Sighting < ApplicationRecord
+    belongs_to :animal
+end
+```
+
+```ruby
+class Animal < ApplicationRecord
+    has_many :sightings
+end
+```
+
 - **Story**:  As the consumer of the API I can update an animal sighting in the database.
+```ruby
+    #Create a update method in sightings_controller.rb
+    def update
+        @sighting = Sighting.find(params[:id])
+        if @sighting
+          @sighting.update(sighting_params)
+          render('show')
+        else
+          head 404
+        end
+    end
+
+    private
+    def sighting_params
+        params.require(:sighting).permit(:date, :latitude, :longitude, :animal_id)
+    end
+```
 - **Story**:  As the consumer of the API I can destroy an animal sighting in the database.
+```ruby
+    #Create a destroy mehod in sightings_controller.rb
+    def destroy
+        @sighting = Sighting.find(params[:id])
+        if @sighting
+          @sighting.destroy
+          head 204
+        else
+          head 404
+        end
+    end
+```
 - **Story**:  As the consumer of the API, when I view a specific animal, I can also see a list sightings of that animal.
   - *Hint*: Checkout the [ Ruby on Rails API docs ](https://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json) on how to include associations.
+```ruby
+    #Update the show method in animals_controller.rb
+    def show
+        @animals = Animal.find(params[:id])
+        @sightings = Sighting.where(animal_id:params[:id])
+        render('show')
+    end
+```
+
 - **Story**:  As the consumer of the API, I can run a report to list all sightings during a given time period.
   - *Hint*: Your controller can look like this:
 ```ruby
@@ -75,6 +206,3 @@ Remember to add the start_date and end_date to what is permitted in your strong 
 ## Super Stretch Challenge
 - **Story**: As the consumer of the API, I can submit sighting data along with a new animal in a single API call.
 	- *Hint*: Look into `accepts_nested_attributes_for`
-
-
-[ Back to Syllabus ](../README.md#unit-six-ruby-on-rails)
